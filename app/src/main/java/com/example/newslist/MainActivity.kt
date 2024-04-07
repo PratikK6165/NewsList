@@ -6,25 +6,28 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.TextView
-import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
+import java.net.HttpURLConnection
 import java.net.URL
-import javax.net.ssl.HttpsURLConnection
 
 class MainActivity : AppCompatActivity() {
 
 
-    private val newsList = ArrayList<News>()
+    private lateinit var newsList: MutableList<News>
     private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: NewsAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -32,44 +35,87 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView = findViewById(R.id.recyclerView)
         recyclerView.layoutManager = LinearLayoutManager(this)
-//        recyclerView.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+
+        newsList = mutableListOf()
+        adapter = NewsAdapter(newsList)
+        recyclerView.adapter = adapter
+
+        val btnOldToNew = findViewById<Button>(R.id.btnOldToNew)
+        val btnNewToOld = findViewById<Button>(R.id.btnNewToOld)
 
         fetchData()
+
+
+        btnOldToNew.setOnClickListener {
+            sortAndDisplayArticles(oldToNew = true)
+        }
+
+        btnNewToOld.setOnClickListener {
+            sortAndDisplayArticles(oldToNew = false)
+        }
+
     }
+
+    private fun sortAndDisplayArticles(oldToNew: Boolean) {
+        newsList.sortBy { it.title } // Sort based on the title
+        if (!oldToNew) {
+            newsList.reverse()
+        }
+        adapter.notifyDataSetChanged()
+    }
+
 
     private fun fetchData() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 val url =
                     URL("https://candidate-test-data-moengage.s3.amazonaws.com/Android/news-api-feed/staticResponse.json")
-                val connection = url.openConnection() as HttpsURLConnection
-                connection.requestMethod = "GET"
-                val inputStream = connection.inputStream
-                val json = inputStream.bufferedReader().use { it.readText() }
-                parseJson(json)
+                val urlConnection = url.openConnection() as HttpURLConnection
+                val inputStream = urlConnection.inputStream
+                val bufferedReader = BufferedReader(InputStreamReader(inputStream))
+
+                val response = StringBuilder()
+                var inputLine: String?
+
+                while (bufferedReader.readLine().also { inputLine = it } != null) {
+                    response.append(inputLine)
+                }
+
+                bufferedReader.close()
+
+                val jsonResponse = JSONObject(response.toString())
+                val articles = jsonResponse.getJSONArray("articles")
+
+                for (i in 0 until articles.length()) {
+                    val article = articles.getJSONObject(i)
+                    val headline = article.getString("title")
+                    val url = article.getString("url")
+                    newsList.add(News(headline, url)) // Create News object instead of Pair
+                }
+
+                runOnUiThread {
+                    adapter.notifyDataSetChanged()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "Error fetching data", Toast.LENGTH_SHORT)
-                        .show()
-                }
             }
         }
     }
 
-    private fun parseJson(json: String) {
-        val jsonObject = JSONObject(json)
-        val articles = jsonObject.getJSONArray("articles")
-        for (i in 0 until articles.length()) {
-            val article = articles.getJSONObject(i)
-            val title = article.getString("title")
-            val url = article.getString("url")
-            newsList.add(News(title, url))
-        }
-        runOnUiThread {
-            recyclerView.adapter = NewsAdapter(newsList)
-        }
-    }
+
+//    private fun parseJson(json: String) {
+//        val jsonObject = JSONObject(json)
+//        val articles = jsonObject.getJSONArray("articles")
+//        for (i in 0 until articles.length()) {
+//            val article = articles.getJSONObject(i)
+//            val title = article.getString("title")
+//            val url = article.getString("url")
+//            newsList.add(News(title, url))
+//        }
+//        runOnUiThread {
+//            recyclerView.adapter = NewsAdapter(newsList)
+//        }
+//    }
 
     inner class NewsAdapter(private val newsList: List<News>) :
         RecyclerView.Adapter<NewsAdapter.NewsViewHolder>() {

@@ -22,6 +22,32 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/layoutBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <Button
+            android:id="@+id/btnOldToNew"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Old to New"
+            android:layout_margin="8dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/btnNewToOld"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:text="New to Old"
+            android:layout_weight="1"/>
+
+    </LinearLayout>
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"
@@ -29,7 +55,7 @@
         android:clipToPadding="false"
         android:padding="16dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/layoutBtn"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbarLayout"/>
